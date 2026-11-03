@@ -1,0 +1,29 @@
+{
+  "name": "copilot-workers",
+  "version": "0.4.0",
+  "description": "A Team pane for Claude Code: watch the GitHub Copilot CLI agents Claude leads, their jobs, rounds and credit budget, and steer them from one place",
+  "author": {
+    "name": "Moshiur"
+  },
+  "userConfig": {
+    "ownerName": {
+      "type": "string",
+      "title": "Your name",
+      "description": "Shown in the pane header and on the messages the pane sends to the lead",
+      "default": ""
+    },
+    "runsDir": {
+      "type": "string",
+      "title": "Runs folder",
+      "description": "Where the Copilot run logs, team.json and lead.json live; empty means ~/.claude/copilot-runs",
+      "default": ""
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "copilot",
+    "agents",
+    "team",
+    "pane"
+  ]
+}
