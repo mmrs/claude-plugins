@@ -1,0 +1,17 @@
+# role=review model=claude-opus-5.5 repo=todo-api job=API-12 member=reviewer
+● Read the diff
+  │ git diff main...HEAD
+  └ 124 lines…
+
+● Check validation
+  │ grep -n dueDate src/main/java/todo/task/*.java
+  └ 9 lines…
+
+Two findings: a due date in the past is accepted, and the migration has no index for the overdue query.
+
+Session exported to: ./copilot-review-1.md
+
+
+AI Credits 61.2 (3m 55s)
+Resume     copilot --resume=demo-2222
+# exit=0

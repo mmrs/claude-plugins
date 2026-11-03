@@ -1,0 +1,26 @@
+{
+  "seats": 5,
+  "creditBudget": 1500,
+  "budgetSince": 0,
+  "roster": [
+    {
+      "member": "senior-dev",
+      "model": "claude-opus-5.5",
+      "title": "Snr. Developer"
+    },
+    {
+      "member": "mid-dev",
+      "model": "claude-sonnet-5.5",
+      "title": "Developer"
+    },
+    {
+      "member": "frontend-dev",
+      "model": "claude-sonnet-5.5",
+      "title": "Frontend Developer"
+    },
+    {
+      "member": "reviewer",
+      "model": "claude-opus-5.5"
+    }
+  ]
+}

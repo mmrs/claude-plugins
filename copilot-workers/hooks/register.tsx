@@ -22,6 +22,8 @@ let showChart = true
 let showCredits = true
 // Member cards opened with Details, by job and member; a view setting, reset by a reload.
 const expanded = new Set<string>()
+// The member whose Remove is waiting for a second press; a reload forgets it.
+let removing: string | undefined
 const DETAIL_STEPS = 10
 
 type Status = 'running' | 'done' | 'failed' | 'stopped'
@@ -141,8 +143,17 @@ const parse = (name: string, text: string, mtimeMs: number, now: number, hasTran
   const ageMs = now - mtimeMs
   // The lead appends "# exit=<code>" once Copilot returns, so a run that failed to start doesn't look like it's working.
   const exit = /^# exit=(\d+)\s*$/m.exec(text)
-  const status: Status =
-    exit && exit[1] !== '0' ? 'failed' : stats || exit ? 'done' : ageMs < STALE_MS ? 'running' : 'stopped'
+  // 130 and 143 are a run that was interrupted or killed on purpose, not one that broke.
+  const stoppedOnPurpose = exit?.[1] === '130' || exit?.[1] === '143'
+  const status: Status = stoppedOnPurpose
+    ? 'stopped'
+    : exit && exit[1] !== '0'
+      ? 'failed'
+      : stats || exit
+        ? 'done'
+        : ageMs < STALE_MS
+          ? 'running'
+          : 'stopped'
   const lastOutput = text
     .slice(0, exit?.index)
     .split('\n')
@@ -189,11 +200,15 @@ const parse = (name: string, text: string, mtimeMs: number, now: number, hasTran
   }
 }
 
+// Runs with the same file time (a fresh clone, a copied folder) fall back to their run number, copilot-<role>-<n>.
+const runNumber = (name: string) => Number(/-(\d+)$/.exec(name)?.[1] ?? 0)
+const oldestFirst = (a: Round, b: Round) => a.mtimeMs - b.mtimeMs || runNumber(a.name) - runNumber(b.name)
+
 // A resumed Copilot session reports running totals, so a round's own share is the step from the round before.
 const withDeltas = (rounds: Round[]) => {
   const previous = new Map<string, Round>()
   return [...rounds]
-    .sort((a, b) => a.mtimeMs - b.mtimeMs)
+    .sort(oldestFirst)
     .map(round => {
       const before = previous.get(round.session)
       previous.set(round.session, round)
@@ -243,7 +258,9 @@ const loadJobs = async ($: EngineInterface, rounds: Round[], lead: Lead): Promis
   const jobs = await Promise.all(
     ids.map(async id => {
       const jobRounds = rounds.filter(round => round.job === id)
-      const tasks = lead.jobs[id]?.tasks
+      // A relative path is read from the runs folder, so a runs folder can be moved or shipped as a demo.
+      const listed = lead.jobs[id]?.tasks
+      const tasks = listed && !listed.startsWith('/') ? `${LOG_DIR}/${listed}` : listed
       const text = tasks ? await $.fs.read(tasks).catch(() => '') : ''
       const memberNames = [...new Set(jobRounds.map(round => round.member))]
       const members = memberNames.map(member => {
@@ -271,7 +288,8 @@ const loadJobs = async ($: EngineInterface, rounds: Round[], lead: Lead): Promis
       }
     }),
   )
-  return jobs.sort((a, b) => Math.max(...b.rounds.map(r => r.mtimeMs)) - Math.max(...a.rounds.map(r => r.mtimeMs)))
+  // Newest job first: rounds are oldest first, so a job's last round is its newest.
+  return jobs.sort((a, b) => oldestFirst(b.rounds.at(-1)!, a.rounds.at(-1)!))
 }
 
 const loadAll = async ($: EngineInterface) => {
@@ -329,7 +347,7 @@ const stem = (isLast: boolean) => (isLast ? '   ' : '│  ')
 // `group` sit under one heading. Seats cap how many work at once, so spare seats show as open.
 const orgChart = (rounds: Round[], team: Team): ChartLine[] => {
   const latest = new Map<string, Round>()
-  for (const round of [...rounds].sort((a, b) => a.mtimeMs - b.mtimeMs)) latest.set(round.member, round)
+  for (const round of [...rounds].sort(oldestFirst)) latest.set(round.member, round)
   const roster: RosterEntry[] =
     team.roster ?? [...latest.entries()].map(([member, round]) => ({ member, model: round.model }))
   const titles = rosterTitles(team)
@@ -362,14 +380,14 @@ const orgChart = (rounds: Round[], team: Team): ChartLine[] => {
 // Every control on a member goes to the lead (the Claude session), who instructs the workers.
 const ASKS: Record<Status, { label: string; ask: (m: Member) => string }[]> = {
   running: [
-    { label: 'Ask lead for status', ask: m => `Status of ${m.latest.name}?` },
-    { label: 'Ask lead to stop it', ask: m => `Stop ${m.latest.name}; what did it finish?` },
+    { label: '💬 Status', ask: m => `Status of ${m.latest.name}?` },
+    { label: '⏹ Stop', ask: m => `Stop ${m.latest.name}; what did it finish?` },
   ],
-  done: [{ label: 'Ask lead for a verdict', ask: m => `Verdict on ${m.latest.name}?` }],
-  failed: [{ label: 'Ask lead to look into it', ask: m => `${m.latest.name} failed. Why?` }],
+  done: [{ label: '🧾 Verdict', ask: m => `Verdict on ${m.latest.name}?` }],
+  failed: [{ label: '🔍 Why?', ask: m => `${m.latest.name} failed. Why?` }],
   stopped: [
     {
-      label: 'Ask lead to restart it',
+      label: '🔁 Restart',
       ask: m => `${m.latest.name} stopped early. Why? Restart if it makes sense.`,
     },
   ],
@@ -482,6 +500,12 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
       .then(redraw)
   }
   const titles = rosterTitles(team)
+  const inRoster = new Set((team.roster ?? []).map(entry => entry.member))
+  const remove = (member: string) => {
+    removing = undefined
+    tell(`Removed ${memberTitle(titles, member)} (${member}) from the team.`)
+    change(t => ({ ...t, roster: (t.roster ?? []).filter(entry => entry.member !== member) }))
+  }
   const titleOf = (member: string) => memberTitle(titles, member)
   const iconOf = (member: string) => roleIcon(team.roster?.find(entry => entry.member === member) ?? { member })
   // A hidden job keeps its history on disk; it only leaves the default view.
@@ -658,7 +682,7 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
                     tell(`Approved: ${request.reason}`)
                   }}
                 >
-                  Approve
+                  ✓ Approve
                 </Button>
                 <Button
                   key="request-decline"
@@ -668,7 +692,7 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
                     tell(`Declined: ${request.reason}`)
                   }}
                 >
-                  Decline
+                  ✕ Decline
                 </Button>
               </Box>
             </Box>
@@ -678,10 +702,10 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
               <Text>{item.text}</Text>
               <Box flexDirection="row" gap={1}>
                 <Button key={`waiting-${item.id}-yes`} variant="primary" onPress={() => answer(item, 'Go ahead')}>
-                  Go ahead
+                  ✓ Go ahead
                 </Button>
                 <Button key={`waiting-${item.id}-no`} variant="secondary" onPress={() => answer(item, 'Not yet')}>
-                  Not yet
+                  ⏸ Not yet
                 </Button>
               </Box>
             </Box>
@@ -704,9 +728,21 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
                     <Text bold>{line.member.title}</Text>
                     <Text color="subtle">{`  ${modelName(line.member.model)}`}</Text>
                   </Text>,
-                  <Text color={line.member.working ? 'warning' : 'subtle'}>
-                    {line.member.working ? `On ${line.member.job ?? 'a job'}` : 'Idle'}
-                  </Text>,
+                  line.member.working ? (
+                    <Text color="warning">{`On ${line.member.job ?? 'a job'}`}</Text>
+                  ) : !inRoster.has(line.member.member) ? (
+                    <Text color="subtle">Idle</Text>
+                  ) : removing === line.member.member ? (
+                    <Box flexDirection="row" columnGap={2}>
+                      {link(`remove-${line.member.member}-yes`, '✓ Remove', () => remove(line.member!.member))}
+                      {link(`remove-${line.member.member}-no`, '↩ Keep', toggle(() => (removing = undefined)))}
+                    </Box>
+                  ) : (
+                    <Box flexDirection="row" columnGap={2}>
+                      <Text color="subtle">Idle</Text>
+                      {link(`remove-${line.member.member}`, '✕ Remove', toggle(() => (removing = line.member!.member)))}
+                    </Box>
+                  ),
                 )}
               </Box>
             ) : line.group ? (
@@ -716,7 +752,7 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
             ) : (
               <Box key={`chart-${i}`} width={share(memberCols)} flexDirection="row" justifyContent="space-between">
                 <Text color="subtle">🪑 Open seat</Text>
-                {link(`hire-${i}`, 'Hire', () =>
+                {link(`hire-${i}`, '➕ Hire', () =>
                   tell(
                     'Open seat: propose a hire.',
                   ),
@@ -835,17 +871,17 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
                   <Box flexDirection="row" columnGap={2} rowGap={0} paddingLeft={2} flexWrap="wrap">
                     {link(`${id}-details-toggle`, `${chevron(expanded.has(id))} Steps`, toggle(() => (expanded.delete(id) || expanded.add(id))))}
                     {ASKS[m.latest.status].map(({ label, ask }) => link(`${id}-${label}`, label, () => tell(ask(m))))}
-                    {m.latest.brief && link(`${id}-brief`, 'Open brief', () => openFile($, m.latest.brief!.path))}
-                    {m.latest.transcript && link(`${id}-transcript`, 'Open transcript', () => openFile($, m.latest.transcript!))}
+                    {m.latest.brief && link(`${id}-brief`, '📝 Brief', () => openFile($, m.latest.brief!.path))}
+                    {m.latest.transcript && link(`${id}-transcript`, '📜 Transcript', () => openFile($, m.latest.transcript!))}
                   </Box>
                 </Box>
               )
             })}
 
             <Box flexDirection="row" columnGap={2} rowGap={0} flexWrap="wrap" marginTop={1}>
-              {job.tasks && link(`tasks-${job.id}`, 'Open task list', () => openFile($, job.tasks!))}
-              {link(`hide-${job.id}`, job.hidden ? 'Show job' : 'Hide job', () => setHidden(job.id, !job.hidden))}
-              {job.hidden && link(`clean-${job.id}`, 'Move logs to archive', () => void cleanUp(job))}
+              {job.tasks && link(`tasks-${job.id}`, '✅ Tasks', () => openFile($, job.tasks!))}
+              {link(`hide-${job.id}`, job.hidden ? '👀 Show' : '🙈 Hide', () => setHidden(job.id, !job.hidden))}
+              {job.hidden && link(`clean-${job.id}`, '📦 Archive', () => void cleanUp(job))}
             </Box>
           </Box>
         ))}
@@ -857,7 +893,7 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
           <Input
             key={`lead-message-${sent}`}
             placeholder="Message the lead…"
-            submitLabel="Send"
+            submitLabel="➤ Send"
             onSubmit={value => {
               if (!value.trim()) return
               tell(value.trim())

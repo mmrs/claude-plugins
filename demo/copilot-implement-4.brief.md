@@ -1,0 +1,1 @@
+Paginate GET /tasks in todo-api (API-15). Add `page` and `size` query parameters and return the total count, using Spring Data's `Pageable` like `ProjectController` does. The default page size isn't decided yet; pick one and say which.

@@ -80,3 +80,39 @@ test('the pane shows the team, its budget and a job from the runs folder', { opt
     await ui.unmount()
   }
 })
+
+test('an idle member can be removed after a second press', { options: { ownerName: 'Ana', runsDir: RUNS } }, async ($, on) => {
+  const written: Record<string, string> = {}
+  const sentToLead: string[] = []
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('command.register', () => ({ value: { command: 'copilot-workers' } }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('clock.every', () => ({ value: undefined }))
+  on('clock.now', () => ({ value: NOW }))
+  on('process.run', () => ({ value: { exitCode: 0, stdout: '/home/ana\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('fs.list', () => ({
+    value: Object.keys(FILES).map(path => ({ name: path.slice(RUNS.length + 1), kind: 'file' as const, isLink: false, size: 1, mtimeMs: NOW - 60_000 })),
+  }))
+  on('fs.read', (_, e) => ({ value: written[e.path] ?? FILES[e.path] ?? '' }))
+  on('fs.write', (_, e) => {
+    written[e.path] = e.text
+    return { value: undefined }
+  })
+  on('prompt.submit', (_, e) => {
+    sentToLead.push(e.text)
+    return { drop: 'captured by the test' }
+  })
+
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+
+  // The reviewer has no run on the books, so it's idle; senior-dev-2 is too, but only the pressed one goes.
+  await ui.press({ key: 'remove-reviewer' })
+  expect(written[`${RUNS}/team.json`]).toBeUndefined()
+  await ui.press({ key: 'remove-reviewer-yes' })
+
+  const roster = JSON.parse(written[`${RUNS}/team.json`] ?? '{}').roster.map((entry: { member: string }) => entry.member)
+  expect(roster).toEqual(['senior-dev', 'senior-dev-2'])
+  expect(sentToLead).toEqual(['[Copilot Team · Ana] Removed Reviewer (reviewer) from the team.'])
+  await ui.unmount()
+})

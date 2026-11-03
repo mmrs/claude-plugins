@@ -1,0 +1,22 @@
+# role=implement model=claude-opus-5.5 repo=todo-api job=API-12 member=senior-dev
+● Read TaskController.java
+  │ cat src/main/java/todo/task/TaskController.java
+  └ 88 lines…
+
+● Add the due_date migration
+  │ cat > src/main/resources/db/V7__task_due_date.sql
+  └ 1 file written
+
+● Run the tests
+  │ ./mvnw -q test
+  └ Tests run: 64, Failures: 0
+
+Added `dueDate` to tasks: a nullable column, accepted on create and update, returned in the response. 64 tests pass.
+
+Session exported to: ./copilot-implement-1.md
+
+
+Changes    +118 -6
+AI Credits 142.6 (8m 40s)
+Resume     copilot --resume=demo-1111
+# exit=0

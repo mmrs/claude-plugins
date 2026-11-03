@@ -9,6 +9,10 @@ You're the lead. The user is above you and the Copilot agents report to you. The
 
 Everything lives in the runs folder: the plugin's `runsDir` option, `~/.claude/copilot-runs` when it's empty.
 
+## Catching up
+
+A new session, or one that didn't start the runs, knows nothing about them yet. Before acting on the team, read `team.json`, `lead.json` and the newest logs in the runs folder (`ls -t <runsDir>/copilot-*.log | head`). A log is the run's whole story: the header line says who and what, the `●` lines are its steps, and the end says whether it finished (`AI Credits`), failed (`# exit=` non-zero) or is still going. Check with `pgrep -fl -- "-n <run>"` whether a run without an exit line is still alive. Don't start a member who's already on a live run.
+
 ## Team or yourself
 
 - **The team** implements something the user has named (a ticket or a task) in a repo with a build and test loop, when it's more than a handful of edits.
@@ -55,12 +59,13 @@ For a follow-up round on the same agent, resume its session (`copilot --resume=<
 Every button sends a short message starting `[Copilot Team · <name>]`. Read them as:
 
 - `Status of <run>?`: read that run's log and say in a few lines how it's going.
-- `Stop <run>; what did it finish?`: stop it, then report what was done.
+- `Stop <run>; what did it finish?`: stop it with `pkill -f -- "-n <run>"` (the run may belong to another session), append `# exit=130` to its log, then report what was done.
 - `Verdict on <run>?`: review the round (diff, build), give your verdict and record it in `lead.json`.
 - `<run> stopped early. Why? Restart if it makes sense.`: no output for ten minutes and no exit line.
 - `<run> failed. Why?`: as under "Exit code non-zero" above.
 - `Open seat: propose a hire.`: write one `request.hire` in `team.json`, with the role and model the current jobs need and why in `reason`.
 - `Approved: …` / `Declined: …`: the pane has already applied it to `team.json`; on Declined, work within the current team.
+- `Removed <title> (<member>) from the team.`: the pane has already taken them off the roster. Give them no new runs; their past runs stay on their jobs.
 - `Go ahead: …` / `Not yet: …`: the answer to one of your `waiting` items.
 
 Anything else is the user typing in the message box.

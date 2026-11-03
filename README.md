@@ -7,8 +7,8 @@ What you get in the pane:
 - **Header:** who you are to the lead, how many agents are working against your seat limit, and how many decisions are waiting on you.
 - **Credits:** spend against your budget with a meter, roughly how many more agent runs the rest buys, what a run costs on average, and buttons for seats, budget and a new budget period.
 - **Needs your decision:** requests from the lead (a hire, more seats or credits) and questions it's waiting on, with Approve/Decline or Go ahead/Not yet.
-- **Members:** everyone on the roster with their model and whether they're working, plus open seats you can ask the lead to fill.
-- **Jobs:** one card per ticket or task, with task progress counted from the job's checklist (any markdown file with `- [ ]` / `- [x]` items, such as an OpenSpec `tasks.md`; jobs without one simply show no bar), and per member the current step and command, the lead's verdict on its last run, and its runs, credits and time on the job. **▸ Steps** opens what the lead asked and the agent's last steps; **Open brief** and **Open transcript** open the files. Each finished run carries the lead's verdict (accepted or sent back) or, before review, the agent's own summary.
+- **Members:** everyone on the roster with their model and whether they're working, plus open seats you can ask the lead to fill. An idle member can be removed (✕ Remove, then ✓ Remove to confirm); their past runs stay on their jobs.
+- **Jobs:** one card per ticket or task, with task progress counted from the job's checklist (any markdown file with `- [ ]` / `- [x]` items, such as an OpenSpec `tasks.md`; jobs without one simply show no bar), and per member the current step and command, the lead's verdict on its last run, and its runs, credits and time on the job. **▸ Steps** opens what the lead asked and the agent's last steps; **📝 Brief**, **📜 Transcript** and **✅ Tasks** open the files, and 💬 Status, ⏹ Stop, 🧾 Verdict, 🔍 Why? and 🔁 Restart ask the lead about a member's run. Each finished run carries the lead's verdict (accepted or sent back) or, before review, the agent's own summary.
 - **Message the lead:** a box that sends your message straight into the Claude session.
 
 Every button sends a message to the Claude session (prefixed `[Copilot Team · <you>]`); the agents never take orders from the pane directly. On the phone over Remote Control, `/copilot-workers` prints a text snapshot instead.
@@ -36,6 +36,10 @@ claude plugin install copilot-workers --marketplace mmrs/copilot-workers
 Answer `y` to add the marketplace and pick the user scope. The install then asks for the plugin's options: your name (`ownerName`), which the pane shows as who the lead reports to, and `runsDir` if your runs don't live in `~/.claude/copilot-runs`. Open the pane with `/copilot-workers`.
 
 In the desktop app, where `/plugin` doesn't run: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `mmrs/copilot-workers`, then **Add plugin**.
+
+## Try it without Copilot
+
+The `demo/` folder is a made-up runs folder: a team of four, three jobs, a run the lead sent back, a failed one and a question waiting for you. Copy it out (the pane's buttons write to it), point `runsDir` at the copy, and open `/copilot-workers`. [demo/README.md](demo/README.md) has the steps.
 
 ## How Claude feeds it
 

@@ -1,0 +1,35 @@
+{
+  "jobs": {
+    "API-12": {
+      "title": "Add due dates to tasks",
+      "tasks": "tasks/API-12.md"
+    },
+    "API-15": {
+      "title": "Paginate the task list"
+    },
+    "WEB-7": {
+      "title": "Show due dates in the task list",
+      "tasks": "tasks/WEB-7.md"
+    }
+  },
+  "verdicts": {
+    "copilot-implement-1": {
+      "accepted": false,
+      "note": "past due dates are accepted; reject them with a 400"
+    },
+    "copilot-fix-3": {
+      "accepted": true,
+      "note": "past dates now rejected, build and tests pass"
+    },
+    "copilot-review-2": {
+      "accepted": true,
+      "note": "two small findings, both fixed in fix-3"
+    }
+  },
+  "waiting": [
+    {
+      "id": "api-15-page-size",
+      "text": "API-15: default page size 20 or 50?"
+    }
+  ]
+}
