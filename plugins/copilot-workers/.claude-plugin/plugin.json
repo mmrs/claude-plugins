@@ -1,10 +1,12 @@
 {
   "name": "copilot-workers",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "A Copilot Team pane for Claude Code: watch the GitHub Copilot CLI agents Claude leads, their jobs, rounds and credit budget, and steer them from one place",
   "author": {
     "name": "Moshiur"
   },
+  "homepage": "https://github.com/mmrs/claude-plugins/tree/main/plugins/copilot-workers",
+  "repository": "https://github.com/mmrs/claude-plugins",
   "userConfig": {
     "ownerName": {
       "type": "string",

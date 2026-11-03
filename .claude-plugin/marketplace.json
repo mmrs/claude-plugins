@@ -1,13 +1,13 @@
 {
-  "name": "copilot-workers",
+  "name": "mmrs",
   "owner": {
     "name": "Moshiur"
   },
-  "description": "A Copilot Team pane for the Copilot CLI agents Claude leads",
+  "description": "Claude Code plugins by mmrs",
   "plugins": [
     {
       "name": "copilot-workers",
-      "source": "./copilot-workers"
+      "source": "./plugins/copilot-workers"
     }
   ]
 }
