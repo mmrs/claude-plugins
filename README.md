@@ -4,7 +4,7 @@ A Copilot Team pane for Claude Code. Claude acts as the lead of a small team of 
 
 ![The Copilot Team pane showing the demo team: credits, a question waiting on you, members, and three jobs with a failed, an unreviewed and an accepted run](docs/copilot-team.png)
 
-*The pane on the bundled [demo](demo/) runs folder.*
+*The pane on the bundled [demo](demo/) runs.*
 
 What you get in the pane:
 
@@ -43,7 +43,7 @@ In the desktop app, where `/plugin` doesn't run: click **+** next to the prompt 
 
 ## Try it without Copilot
 
-The `demo/` folder is a made-up runs folder: a team of four, three jobs, a run the lead sent back, a failed one and a question waiting for you. Copy it out (the pane's buttons write to it), point `runsDir` at the copy, and open `/copilot-workers`. [demo/README.md](demo/README.md) has the steps.
+`demo/runs/` is a made-up runs folder: a team of four, three jobs, a run the lead sent back, a failed one and a question waiting for you. Copy it out (the pane's buttons write to it), point `runsDir` at the copy, and open `/copilot-workers`. [demo/README.md](demo/README.md) has the steps.
 
 ## How Claude feeds it
 
