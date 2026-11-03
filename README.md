@@ -1,6 +1,6 @@
 # copilot-workers
 
-A Team pane for Claude Code. Claude acts as the lead of a small team of [GitHub Copilot CLI](https://github.com/github/copilot-cli) agents: it writes each agent a brief, runs it in the background, reviews what comes back and reports to you. The pane shows that team as it works, so you can see who's busy, what each agent is doing right now, what it cost, and step in without reading log files.
+A Copilot Team pane for Claude Code. Claude acts as the lead of a small team of [GitHub Copilot CLI](https://github.com/github/copilot-cli) agents: it writes each agent a brief, runs it in the background, reviews what comes back and reports to you. The pane shows that team as it works, so you can see who's busy, what each agent is doing right now, what it cost, and step in without reading log files.
 
 What you get in the pane:
 
@@ -11,7 +11,7 @@ What you get in the pane:
 - **Jobs:** one card per ticket or task, with task progress counted from the job's checklist (any markdown file with `- [ ]` / `- [x]` items, such as an OpenSpec `tasks.md`; jobs without one simply show no bar), and per member the current step and command, the lead's verdict on its last run, and its runs, credits and time on the job. **▸ Steps** opens what the lead asked and the agent's last steps; **Open brief** and **Open transcript** open the files. Each finished run carries the lead's verdict (accepted or sent back) or, before review, the agent's own summary.
 - **Message the lead:** a box that sends your message straight into the Claude session.
 
-Every button sends a message to the Claude session (prefixed `[Team pane · <you>]`); the agents never take orders from the pane directly. On the phone over Remote Control, `/copilot-workers` prints a text snapshot instead.
+Every button sends a message to the Claude session (prefixed `[Copilot Team · <you>]`); the agents never take orders from the pane directly. On the phone over Remote Control, `/copilot-workers` prints a text snapshot instead.
 
 ## Requirements
 
@@ -39,7 +39,9 @@ In the desktop app, where `/plugin` doesn't run: click **+** next to the prompt 
 
 ## How Claude feeds it
 
-The pane only reads files, so it works with any lead that writes them. Tell Claude about this layout (a memory or `CLAUDE.md` entry works well):
+The plugin ships a skill, `copilot-workers:lead-copilot`, that teaches Claude to lead the team: when to hand work to an agent and when to do it itself, how to brief and start a run, how to review it and record a verdict, and what each button in the pane asks for. Claude loads it when you ask for the team or press a button in the pane, so there's nothing to set up beyond the install. Your own instructions still win: "use the team" or "do it yourself" on any request overrides its rule.
+
+The pane only reads files, so it also works with any other lead that writes them. The layout:
 
 - **Run logs:** each Copilot run writes its output to `<runsDir>/copilot-<name>.log`. The first line is a header the pane parses:
 

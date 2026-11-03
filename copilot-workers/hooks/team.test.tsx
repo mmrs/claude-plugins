@@ -42,7 +42,7 @@ const PANE = {
   component: 'Pane',
   requestId: 'copilot-workers',
   props: {
-    title: 'Team',
+    title: 'Copilot Team',
     isFocused: false,
     bodyColumns: 60,
     placement: 'dock',

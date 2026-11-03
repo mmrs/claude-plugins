@@ -3,7 +3,7 @@
   "owner": {
     "name": "Moshiur"
   },
-  "description": "A Team pane for the Copilot CLI agents Claude leads",
+  "description": "A Copilot Team pane for the Copilot CLI agents Claude leads",
   "plugins": [
     {
       "name": "copilot-workers",

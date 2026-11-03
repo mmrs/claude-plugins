@@ -1,7 +1,7 @@
 import type { EngineInterface, Register, RenderInput } from 'claude-code'
 
 const PANE = 'copilot-workers'
-const TITLE = 'Team'
+const TITLE = 'Copilot Team'
 // Set in session.start from the plugin's options: the runs folder and the name of the person the lead reports to.
 let LOG_DIR = ''
 // Owned by the person (seats, budget, roster) and answered here; the lead only adds `request`.
@@ -13,7 +13,7 @@ let OWNER = 'You'
 const STALE_MS = 10 * 60 * 1000
 const MAX_JOBS = 4
 const CREDIT_STEP = 500
-const from = () => `[Team pane · ${OWNER}]`
+const from = () => `[Copilot Team · ${OWNER}]`
 
 let sent = 0
 // Whether the pane lists hidden jobs too; a pane-only view setting, so a reload may reset it.
@@ -319,6 +319,9 @@ const rosterTitles = (team: Team) => {
   )
 }
 
+const memberTitle = (titles: Map<string, string>, member: string) =>
+  titles.get(member) ?? titleCase(member.replace(/-/g, ' '))
+
 const branch = (isLast: boolean) => (isLast ? '└─ ' : '├─ ')
 const stem = (isLast: boolean) => (isLast ? '   ' : '│  ')
 
@@ -375,6 +378,7 @@ const ASKS: Record<Status, { label: string; ask: (m: Member) => string }[]> = {
 const teamSnapshot = async ($: EngineInterface) => {
   const { team, lead, rounds, jobs } = await loadAll($)
   const stats = insights(rounds, team)
+  const titles = rosterTitles(team)
   const running = rounds.filter(r => r.status === 'running').length
   const waiting = [
     ...(team.request ? [describeRequest(team.request)] : []),
@@ -384,11 +388,13 @@ const teamSnapshot = async ($: EngineInterface) => {
     `${job.id}${job.title ? ` · ${job.title}` : ''}${job.total ? ` · ${job.done}/${job.total} tasks` : ''} · ${Math.round(job.credits)} credits`,
     ...job.members.map(m => {
       const detail = m.latest.status === 'running' ? m.latest.step : (m.latest.verdict?.note ?? m.latest.summary)
-      return `  • ${titleCase(m.member)} ${m.latest.status} · ${m.rounds.length} runs · ${Math.round(m.credits)} credits${detail ? ` — ${detail.slice(0, 90)}` : ''}`
+      const title = memberTitle(titles, m.member)
+      const runs = `${m.rounds.length} run${m.rounds.length === 1 ? '' : 's'}`
+      return `  • ${title} ${m.latest.status} · ${runs} · ${Math.round(m.credits)} credits${detail ? ` — ${detail.slice(0, 90)}` : ''}`
     }),
   ])
   return [
-    `Team: ${running}/${team.seats} working · credits ${stats.spent}/${team.creditBudget}`,
+    `Copilot Team: ${running}/${team.seats} working · credits ${stats.spent}/${team.creditBudget}`,
     ...waiting,
     ...jobLines,
   ].join('\n')
@@ -401,7 +407,7 @@ export const register: Register = (on, options) => {
     LOG_DIR = String(options.runsDir ?? '').trim().replace(/^~(?=\/|$)/, home) || `${home}/.claude/copilot-runs`
     TEAM_FILE = `${LOG_DIR}/team.json`
     LEAD_FILE = `${LOG_DIR}/lead.json`
-    await $.command.register({ name: 'copilot-workers', description: 'Show the Team pane: the Copilot workers Claude leads' })
+    await $.command.register({ name: 'copilot-workers', description: 'Show the Copilot Team pane: the Copilot workers Claude leads' })
     void $.ui.open({ id: PANE, title: TITLE })
     let shown = ''
     $.clock.every(3000, () => {
@@ -476,7 +482,7 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
       .then(redraw)
   }
   const titles = rosterTitles(team)
-  const titleOf = (member: string) => titles.get(member) ?? titleCase(member.replace(/-/g, ' '))
+  const titleOf = (member: string) => memberTitle(titles, member)
   const iconOf = (member: string) => roleIcon(team.roster?.find(entry => entry.member === member) ?? { member })
   // A hidden job keeps its history on disk; it only leaves the default view.
   const setHidden = (id: string, hidden: boolean) =>
@@ -614,16 +620,16 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
         {showCredits && (
         <Box flexDirection="row" gap={1} flexWrap="wrap">
           <Button key="seat-less" variant="secondary" onPress={() => change(t => ({ ...t, seats: Math.max(1, t.seats - 1) }))}>
-            − Seat
+            🪑 −1
           </Button>
           <Button key="seat-more" variant="secondary" onPress={() => change(t => ({ ...t, seats: t.seats + 1 }))}>
-            + Seat
+            🪑 +1
           </Button>
           <Button key="credits-more" variant="secondary" onPress={() => change(t => ({ ...t, creditBudget: t.creditBudget + CREDIT_STEP }))}>
-            {`+ ${CREDIT_STEP} credits`}
+            {`🪙 +${CREDIT_STEP}`}
           </Button>
           <Button key="budget-reset" variant="secondary" onPress={() => change(t => ({ ...t, budgetSince: now, cleanedCredits: 0 }))}>
-            New period
+            🔄 Reset
           </Button>
         </Box>
         )}
