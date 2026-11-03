@@ -116,3 +116,35 @@ test('an idle member can be removed after a second press', { options: { ownerNam
   expect(sentToLead).toEqual(['[Copilot Team · Ana] Removed Reviewer (reviewer) from the team.'])
   await ui.unmount()
 })
+
+test('runs copied within the same moment keep their run order', { options: { ownerName: 'Ana', runsDir: RUNS } }, async ($, on) => {
+  // As a clone or `cp -r` leaves them: written in name order, so fix-3 is a few milliseconds older than implement-1.
+  const files: Record<string, { text: string; mtimeMs: number }> = {
+    [`${RUNS}/team.json`]: { text: JSON.stringify({ seats: 2, roster: [{ member: 'senior-dev', model: 'claude-opus-5.5' }] }), mtimeMs: NOW },
+    [`${RUNS}/lead.json`]: {
+      text: JSON.stringify({
+        jobs: { 'T-2': { title: 'Ordering' } },
+        verdicts: { 'copilot-implement-1': { accepted: false, note: 'first try' }, 'copilot-fix-3': { accepted: true, note: 'fixed' } },
+        waiting: [],
+      }),
+      mtimeMs: NOW,
+    },
+    [`${RUNS}/copilot-fix-3.log`]: { text: '# role=fix model=m repo=r job=T-2 member=senior-dev\nAI Credits 1 (1s)\n# exit=0\n', mtimeMs: NOW - 60_000 },
+    [`${RUNS}/copilot-implement-1.log`]: { text: '# role=implement model=m repo=r job=T-2 member=senior-dev\nAI Credits 1 (1s)\n# exit=0\n', mtimeMs: NOW - 59_997 },
+  }
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('command.register', () => ({ value: { command: 'copilot-workers' } }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('clock.every', () => ({ value: undefined }))
+  on('clock.now', () => ({ value: NOW }))
+  on('process.run', () => ({ value: { exitCode: 0, stdout: '/home/ana\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('fs.list', () => ({
+    value: Object.entries(files).map(([path, file]) => ({ name: path.slice(RUNS.length + 1), kind: 'file' as const, isLink: false, size: 1, mtimeMs: file.mtimeMs })),
+  }))
+  on('fs.read', (_, e) => ({ value: files[e.path]?.text ?? '' }))
+
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: /Lead accepted: fixed/ })).toBeDefined()
+  await ui.unmount()
+})

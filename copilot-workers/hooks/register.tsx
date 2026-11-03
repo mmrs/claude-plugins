@@ -200,9 +200,14 @@ const parse = (name: string, text: string, mtimeMs: number, now: number, hasTran
   }
 }
 
-// Runs with the same file time (a fresh clone, a copied folder) fall back to their run number, copilot-<role>-<n>.
+// A clone or a copied folder writes every file within a few seconds, in name order, so file times that close
+// say nothing about which run came first; the run number (copilot-<role>-<n>) does.
+const SAME_WRITE_MS = 10_000
 const runNumber = (name: string) => Number(/-(\d+)$/.exec(name)?.[1] ?? 0)
-const oldestFirst = (a: Round, b: Round) => a.mtimeMs - b.mtimeMs || runNumber(a.name) - runNumber(b.name)
+const oldestFirst = (a: Round, b: Round) =>
+  Math.abs(a.mtimeMs - b.mtimeMs) < SAME_WRITE_MS && runNumber(a.name) !== runNumber(b.name)
+    ? runNumber(a.name) - runNumber(b.name)
+    : a.mtimeMs - b.mtimeMs
 
 // A resumed Copilot session reports running totals, so a round's own share is the step from the round before.
 const withDeltas = (rounds: Round[]) => {

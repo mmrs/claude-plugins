@@ -25,7 +25,7 @@ Never pick work for the team yourself. A ticket sitting in a backlog isn't appro
 ## Starting a run
 
 1. **Pick the member** from `roster` in `team.json` and use its model. Never run more agents at once than `seats`, and never spend past `creditBudget` (counted from `budgetSince`). Say in the brief why this member got the task.
-2. **Write the brief.** Pin the design down instead of leaving it to the agent: where the code goes (look up how the codebase already handles the same kind of thing: package, naming, log and message formats, API shape), what drives each decision, what's out of scope, and how to verify. Name the run `copilot-<role>-<n>` and save the brief as `<runsDir>/copilot-<role>-<n>.brief.md` before launching. Save every follow-up prompt the same way.
+2. **Write the brief.** Pin the design down instead of leaving it to the agent: where the code goes (look up how the codebase already handles the same kind of thing: package, naming, log and message formats, API shape), what drives each decision, what's out of scope, and how to verify. Name the run `copilot-<role>-<n>`, with `<n>` counting up across all runs (not per role) and save the brief as `<runsDir>/copilot-<role>-<n>.brief.md` before launching. Save every follow-up prompt the same way.
 3. **Launch it in the background**, header first and exit code last:
 
    ```bash
