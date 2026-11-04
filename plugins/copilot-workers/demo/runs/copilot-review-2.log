@@ -4,12 +4,20 @@
   └ 124 lines…
 
 ● Check validation
-  │ grep -n dueDate src/main/java/todo/task/*.java
+  │ grep -n dueDate src/main/java/todo/task/dto/*.java
   └ 9 lines…
 
-Two findings: a due date in the past is accepted, and the migration has no index for the overdue query.
+● Check the migration
+  │ cat src/main/resources/db/V7__task_due_date.sql
+  └ 3 lines…
 
-Session exported to: ./copilot-review-1.md
+## Report
+Two findings; the rules from the brief all hold.
+
+1. dto/TaskRequest.java:18, should fix: a due date in the past is accepted. Add `@FutureOrPresent` so it fails like a blank title.
+2. V7__task_due_date.sql:2, should fix: no index on `due_date`, and the overdue query filters on it. V7 hasn't shipped, so it can go in the same file.
+
+Session exported to: ./copilot-review-2.md
 
 
 AI Credits 61.2 (3m 55s)

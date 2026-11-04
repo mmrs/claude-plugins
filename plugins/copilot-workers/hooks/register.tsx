@@ -182,7 +182,7 @@ const parse = (name: string, text: string, mtimeMs: number, now: number, hasTran
     command: /^\s+│ (.+)$/m.exec(afterLast)?.[1]?.trim() ?? '',
     summary:
       status === 'done'
-        ? (answer.split('\n').map(line => line.trim()).find(Boolean) ?? '')
+        ? (answer.split('\n').map(line => line.trim()).find(line => line && !line.startsWith('#')) ?? '')
         : status === 'failed'
           ? (lastOutput ?? `exit code ${exit?.[1]}`)
           : '',
@@ -388,10 +388,7 @@ const orgChart = (rounds: Round[], team: Team): ChartLine[] => {
 
 // Every control on a member goes to the lead (the Claude session), who instructs the workers.
 const ASKS: Record<Status, { label: string; ask: (m: Member) => string }[]> = {
-  running: [
-    { label: '💬 Status', ask: m => `Status of ${m.latest.name}?` },
-    { label: '⏹ Stop', ask: m => `Stop ${m.latest.name}; what did it finish?` },
-  ],
+  running: [{ label: '⏹ Stop', ask: m => `Stop ${m.latest.name}; what did it finish?` }],
   done: [{ label: '🧾 Verdict', ask: m => `Verdict on ${m.latest.name}?` }],
   failed: [{ label: '🔍 Why?', ask: m => `${m.latest.name} failed. Why?` }],
   stopped: [
@@ -513,9 +510,9 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
   }
   const titles = rosterTitles(team)
   const inRoster = new Set((team.roster ?? []).map(entry => entry.member))
+  // Remove and Decline only change team.json, which the lead reads before it acts, so they cost no Claude turn.
   const remove = (member: string) => {
     removing = undefined
-    tell(`Removed ${memberTitle(titles, member)} (${member}) from the team.`)
     change(t => ({ ...t, roster: (t.roster ?? []).filter(entry => entry.member !== member) }))
   }
   const titleOf = (member: string) => memberTitle(titles, member)
@@ -694,10 +691,7 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
                 <Button
                   key="request-decline"
                   variant="secondary"
-                  onPress={() => {
-                    change(t => ({ ...t, request: undefined }))
-                    tell(`Declined: ${request.reason}`)
-                  }}
+                  onPress={() => change(t => ({ ...t, request: undefined }))}
                 >
                   ✕ Decline
                 </Button>
@@ -726,7 +720,7 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
           'org-heading',
           'Members',
           <Box flexDirection="row" columnGap={2}>
-            {link('hire', '➕ Hire', () => tell('Propose a hire.'))}
+            {!request && link('hire', '➕ Hire', () => tell('Propose a hire.'))}
             {arrow('toggle-chart', showChart, toggle(() => (showChart = !showChart)))}
           </Box>,
         )}

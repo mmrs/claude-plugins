@@ -1,17 +1,41 @@
 # role=implement model=claude-opus-5.5 repo=todo-api job=API-12 member=senior-dev
-● Read TaskController.java
-  │ cat src/main/java/todo/task/TaskController.java
-  └ 88 lines…
+● Read TaskRequest.java
+  │ cat src/main/java/todo/task/dto/TaskRequest.java
+  └ 41 lines…
 
 ● Add the due_date migration
   │ cat > src/main/resources/db/V7__task_due_date.sql
   └ 1 file written
 
+● Add dueDate to the request and response
+  │ apply_patch src/main/java/todo/task/dto/TaskRequest.java src/main/java/todo/task/dto/TaskResponse.java
+  └ 2 files changed
+
 ● Run the tests
   │ ./mvnw -q test
   └ Tests run: 64, Failures: 0
 
-Added `dueDate` to tasks: a nullable column, accepted on create and update, returned in the response. 64 tests pass.
+● Check the diff against the brief
+  │ git diff --stat
+  └ 5 files changed, 118 insertions(+), 6 deletions(-)
+
+## Report
+Tasks have a nullable `dueDate`: accepted on create and update, returned in the response.
+
+Files changed
+- V7__task_due_date.sql: new nullable `due_date` column.
+- dto/TaskRequest.java, dto/TaskResponse.java: `dueDate` as a `LocalDate`.
+- TaskService.java: copies `dueDate` on create and update.
+- TaskControllerTest.java: create, update and read with a due date.
+
+Rules
+- DTOs: both changes are in `todo/task/dto`.
+- Errors: a malformed date fails Jackson parsing and goes through `ApiExceptionHandler` as a 400.
+- Logs: no new log lines.
+
+Ran `./mvnw -q test`: 64 tests, 0 failures.
+
+Open: nothing.
 
 Session exported to: ./copilot-implement-1.md
 

@@ -15,21 +15,21 @@
   "verdicts": {
     "copilot-implement-1": {
       "accepted": false,
-      "note": "past due dates are accepted; reject them with a 400"
+      "note": "sent back after the review: past due dates accepted, no index on due_date"
     },
     "copilot-fix-3": {
       "accepted": true,
-      "note": "past dates now rejected, build and tests pass"
+      "note": "report matches the diff; build and tests pass"
     },
     "copilot-review-2": {
       "accepted": true,
-      "note": "two small findings, both fixed in fix-3"
+      "note": "two findings, both real; sent to senior-dev as fix-3"
     }
   },
   "waiting": [
     {
       "id": "api-15-page-size",
-      "text": "API-15: default page size 20 or 50?"
+      "text": "API-15: default page size 20 or 50? The agent used 20, in one constant."
     }
   ]
 }

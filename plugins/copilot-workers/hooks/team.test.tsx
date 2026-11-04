@@ -19,6 +19,7 @@ const FILES: Record<string, string> = {
     verdicts: { 'copilot-fix-1': { accepted: true, note: 'looks good' } },
     waiting: [],
   }),
+  [`${RUNS}/copilot-implement-2.log`]: '# role=implement model=m repo=r job=T-1 member=senior-dev\n● Build\n  └ ok\n\n## Report\nShipped it.\n# exit=0\n',
   [`${RUNS}/tasks.md`]: '- [x] first\n  - [X] nested\n* [ ] open\n',
   [`${RUNS}/copilot-fix-1.log`]: [
     '# role=fix model=claude-opus-5.5 repo=r job=T-1 member=senior-dev-2',
@@ -26,6 +27,7 @@ const FILES: Record<string, string> = {
     '  │ cat x',
     '  └ ok',
     '',
+    '## Report',
     'All done.',
     '',
     'AI Credits 120.5 (4m 10s)',
@@ -74,6 +76,8 @@ test('the pane shows the team, its budget and a job from the runs folder', { opt
     // Any markdown checklist counts: indented items and [X] included.
     expect(await ui.find({ type: 'Text', text: /2 of 3 tasks done/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Lead accepted: looks good/ })).toBeDefined()
+    // The report marker isn't the summary.
+    expect(await ui.find({ type: 'Text', text: /Agent reported: Shipped it\./ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /121 credits/ })).toBeDefined()
     // A run that exits non-zero is Failed at once, with Copilot's last line as the reason.
     expect(await ui.find({ type: 'Text', text: /Failed: zsh: command not found: copilot/ })).toBeDefined()
@@ -118,10 +122,21 @@ test('an idle member can be removed after a second press', { options: { ownerNam
 
   const roster = JSON.parse(written[`${RUNS}/team.json`] ?? '{}').roster.map((entry: { member: string }) => entry.member)
   expect(roster).toEqual(['senior-dev', 'senior-dev-2'])
-  expect(sentToLead).toEqual(['[Copilot Team · Ana] Removed Reviewer (reviewer) from the team.'])
+  // Remove only changes team.json; the lead reads it before acting, so no Claude turn is spent.
+  expect(sentToLead).toEqual([])
 
   await ui.press({ key: 'hire' })
   expect(sentToLead.at(-1)).toBe('[Copilot Team · Ana] Propose a hire.')
+
+  // While a request waits, Hire is hidden, and Decline clears it without a message.
+  written[`${RUNS}/team.json`] = JSON.stringify({ ...JSON.parse(written[`${RUNS}/team.json`] ?? '{}'), request: { seats: 1, reason: 'busy' } })
+  await ui.press({ key: 'credits-more' })
+  written[`${RUNS}/team.json`] = JSON.stringify({ ...JSON.parse(written[`${RUNS}/team.json`] ?? '{}'), creditBudget: 1000 })
+  expect(await ui.find({ key: 'request-decline' })).toBeDefined()
+  expect(await ui.find({ key: 'hire' })).toBeUndefined()
+  await ui.press({ key: 'request-decline' })
+  expect(JSON.parse(written[`${RUNS}/team.json`] ?? '{}').request).toBeUndefined()
+  expect(sentToLead).toHaveLength(1)
 
   // The 🪙 button adds the configured step, not a fixed one.
   await ui.press({ key: 'credits-more' })

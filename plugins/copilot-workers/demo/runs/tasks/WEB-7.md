@@ -2,4 +2,3 @@
 
 - [ ] Show the due date next to each task
 - [ ] Highlight overdue tasks
-- [ ] Add a date picker to the edit form

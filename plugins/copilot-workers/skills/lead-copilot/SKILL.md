@@ -17,9 +17,10 @@ A new session, or one that didn't start the runs, knows nothing about them yet. 
 
 The team exists to move work off Claude, and every turn of yours re-reads the whole conversation. So the cost is the number of your turns times the size of your context, and both have to stay small.
 
-- **Lead from a short session.** Everything you need is in the runs folder, so a fresh session catches up from it in a few reads. When this session is long and not about the ticket at hand, say so and suggest leading the ticket from a fresh one.
+- **Lead from a short session.** Everything you need is in the runs folder, so a fresh session catches up from it in a few reads. Every pane button is a turn of yours, so a long session makes each press expensive. When this session is long and not about the ticket at hand, say so and suggest leading the ticket from a fresh one.
+- **Read only what you need.** The agent's report: `sed -n '/^## Report/,/^Session exported/p' <log>`, never the whole log. The build: quiet, summary only (`./mvnw -q verify 2>&1 | tail -15`). The diff: `git diff --stat`, then `git diff -U2 -- <file>` for just the files a named rule is about.
 - **Don't watch runs.** Launch with `run_in_background` and wait for the notice that it exited. No `tail`, `pgrep` or log reads in between unless the user asks for a status.
-- **Copilot builds and reports, you validate the report.** The brief gives the agent the build and test command and asks it to end with a short report: the files it changed and why, each named rule and how the diff keeps it, the command it ran and its result, and anything it left open. You check the report against cheap evidence, not the code: `git diff --stat` against the files it lists and the brief's scope, the test summary in the log against the result it claims, and a look at the hunks a named rule is about. A report that doesn't match the evidence is a send-back. Run the build yourself only on the round you're about to accept. A line-by-line review is the reviewer's job, when the user asks for one.
+- **Copilot builds and reports, you validate the report.** The brief gives the agent the build and test command and asks it to end with a short report under a `## Report` line: the files it changed and why, each named rule and how the diff keeps it, the command it ran and its result, and anything it left open. You check the report against cheap evidence, not the code: `git diff --stat` against the files it lists and the brief's scope, the test summary in the log against the result it claims, and a look at the hunks a named rule is about. A report that doesn't match the evidence is a send-back. Run the build yourself only on the round you're about to accept. A line-by-line review is the reviewer's job, when the user asks for one.
 
 ## Team or yourself
 
@@ -34,7 +35,7 @@ Never pick work for the team yourself. A ticket sitting in a backlog isn't appro
 ## Starting a run
 
 1. **Pick the member** from `roster` in `team.json` and use its model. Never run more agents at once than `seats`, and never spend past `creditBudget` (counted from `budgetSince`). Say in the brief why this member got the task.
-2. **Write the brief.** Pin the design down instead of leaving it to the agent: where the code goes (look up how the codebase already handles the same kind of thing: package, naming, log and message formats, API shape), what drives each decision, what's out of scope, and the build and test command it must run and pass before it stops. Copilot loads the user's rules (the repo's `CLAUDE.md` and `~/.copilot/copilot-instructions.md`) but follows a long file loosely, so name in the brief the rules this change is most likely to break (where DTOs go, what to reuse, what never goes in logs) and tell the agent to check its diff against them before finishing and say so in its report. A round sent back for a rule costs a full run plus your review. Name the run `copilot-<role>-<n>`, with `<n>` counting up across all runs (not per role) and save the brief as `<runsDir>/copilot-<role>-<n>.brief.md` before launching. Save every follow-up prompt the same way.
+2. **Write the brief.** Pin the design down instead of leaving it to the agent: where the code goes (look up how the codebase already handles the same kind of thing: package, naming, log and message formats, API shape), what drives each decision, what's out of scope, the build and test command it must run and pass before it stops, and a closing report under a `## Report` line. Copilot loads the user's rules (the repo's `CLAUDE.md` and `~/.copilot/copilot-instructions.md`) but follows a long file loosely, so name in the brief the rules this change is most likely to break (where DTOs go, what to reuse, what never goes in logs) and tell the agent to check its diff against them before finishing and say so in its report. A round sent back for a rule costs a full run plus your review. Name the run `copilot-<role>-<n>`, with `<n>` counting up across all runs (not per role) and save the brief as `<runsDir>/copilot-<role>-<n>.brief.md` before launching. Save every follow-up prompt the same way.
 3. **Launch it in the background**, header first and exit code last:
 
    ```bash
@@ -67,14 +68,12 @@ For a follow-up round on the same agent, resume its session (`copilot --resume=<
 
 Every button sends a short message starting `[Copilot Team · <name>]`. Read them as:
 
-- `Status of <run>?`: read that run's log and say in a few lines how it's going.
 - `Stop <run>; what did it finish?`: stop it with `pkill -f -- "-n <run>"` (the run may belong to another session), append `# exit=130` to its log, then report what was done.
 - `Verdict on <run>?`: check the round as under "When a run ends", give your verdict and record it in `lead.json`.
 - `<run> stopped early. Why? Restart if it makes sense.`: no output for ten minutes and no exit line.
 - `<run> failed. Why?`: as under "Exit code non-zero" above.
 - `Propose a hire.`: write one `request.hire` in `team.json`, with the role and model the current jobs need and why in `reason`; add `seats: 1` when every seat is taken.
-- `Approved: …` / `Declined: …`: the pane has already applied it to `team.json`; on Declined, work within the current team.
-- `Removed <title> (<member>) from the team.`: the pane has already taken them off the roster. Give them no new runs; their past runs stay on their jobs.
+- `Approved: …`: the pane has already applied it to `team.json`.
 - `Go ahead: …` / `Not yet: …`: the answer to one of your `waiting` items.
 
-Anything else is the user typing in the message box.
+Decline and Remove send nothing: they only change `team.json`, so a request that's gone was declined, and a member off the roster gets no new runs (their past runs stay on their jobs). Anything else is the user typing in the message box.

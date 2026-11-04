@@ -1,6 +1,6 @@
 # role=fix model=claude-opus-5.5 repo=todo-api job=API-12 member=senior-dev
 ● Reject past due dates
-  │ apply_patch src/main/java/todo/task/TaskRequest.java
+  │ apply_patch src/main/java/todo/task/dto/TaskRequest.java
   └ 1 file changed
 
 ● Add the index
@@ -11,12 +11,31 @@
   │ ./mvnw -q test
   └ Tests run: 67, Failures: 0
 
-Past due dates now get a 400, and `due_date` has an index. 67 tests pass, three of them new.
+● Check the diff against the brief
+  │ git diff --stat
+  └ 3 files changed, 41 insertions(+), 2 deletions(-)
+
+## Report
+Past due dates now get a 400, and `due_date` has an index.
+
+Files changed
+- dto/TaskRequest.java: `@FutureOrPresent` on `dueDate`.
+- V7__task_due_date.sql: index on `due_date`.
+- TaskControllerTest.java: past date rejected, today accepted, and the 400 body matches a blank title's.
+
+Rules
+- DTOs: the change is in `todo/task/dto`.
+- Errors: the 400 comes from `ApiExceptionHandler`; the test compares the body.
+- Logs: no new log lines.
+
+Ran `./mvnw -q test`: 67 tests, 0 failures, three of them new.
+
+Open: nothing.
 
 Session exported to: ./copilot-fix-3.md
 
 
 Changes    +41 -2
-AI Credits 48.9 (3m 12s)
-Resume     copilot --resume=demo-3333
+AI Credits 191.5 (11m 52s)
+Resume     copilot --resume=demo-1111
 # exit=0
