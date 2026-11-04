@@ -12,7 +12,9 @@ let OWNER = 'You'
 // No output for this long without the end-of-run stats means the run died.
 const STALE_MS = 10 * 60 * 1000
 const MAX_JOBS = 4
-const CREDIT_STEP = 500
+let CREDIT_STEP = 500
+let WARN_AT = 0.85
+let PERIOD_BUDGET: number | undefined
 const from = () => `[Copilot Team · ${OWNER}]`
 
 let sent = 0
@@ -22,6 +24,8 @@ let showChart = true
 let showCredits = true
 // Member cards opened with Details, by job and member; a view setting, reset by a reload.
 const expanded = new Set<string>()
+// Job cards folded down to their title row; a reload unfolds them.
+const collapsedJobs = new Set<string>()
 // The member whose Remove is waiting for a second press; a reload forgets it.
 let removing: string | undefined
 const DETAIL_STEPS = 10
@@ -125,7 +129,7 @@ const roleIcon = (entry: { member: string; title?: string; icon?: string }) => {
 }
 
 // One pair of icons for every collapsible part: open shows ▾, closed shows ▸.
-const chevron = (open: boolean) => (open ? '▾' : '▸')
+const chevron = (open: boolean) => (open ? '▼' : '▶')
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -426,6 +430,9 @@ const teamSnapshot = async ($: EngineInterface) => {
 export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     OWNER = String(options.ownerName ?? '').trim() || 'You'
+    CREDIT_STEP = Number(options.creditStep) > 0 ? Number(options.creditStep) : 500
+    WARN_AT = Number(options.warnAtPercent) > 0 ? Number(options.warnAtPercent) / 100 : 0.85
+    PERIOD_BUDGET = Number(options.creditBudget) > 0 ? Number(options.creditBudget) : undefined
     const home = (await $.process.run(['printenv', 'HOME']).catch(() => undefined))?.stdout.trim() ?? ''
     LOG_DIR = String(options.runsDir ?? '').trim().replace(/^~(?=\/|$)/, home) || `${home}/.claude/copilot-runs`
     TEAM_FILE = `${LOG_DIR}/team.json`
@@ -578,8 +585,9 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
     )
   }
 
+  // paddingRight puts heading arrows in line with the arrows inside the bordered boxes below.
   const heading = (key: string, label: string, right?: unknown) => (
-    <Box key={key} flexDirection="row" justifyContent="space-between">
+    <Box key={key} flexDirection="row" justifyContent="space-between" paddingRight={1}>
       <Text size="footnote" weight="semibold" color="subtle">
         {label.toUpperCase()}
       </Text>
@@ -597,6 +605,12 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
   const link = (key: string, label: string, onPress: () => void) => (
     <Button key={key} plain dimColor onPress={onPress}>
       {label}
+    </Button>
+  )
+  // A lone show/hide arrow is easy to miss dimmed, so it keeps full colour.
+  const arrow = (key: string, open: boolean, onPress: () => void) => (
+    <Button key={key} plain onPress={onPress}>
+      {chevron(open)}
     </Button>
   )
 
@@ -617,25 +631,29 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
       <Box key="top" flexDirection="row" flexWrap="wrap" columnGap={2} rowGap={1}>
       <Box key="budget" width={share(topCols)} flexDirection="column" borderStyle="round" borderColor="subtle" paddingX={1}>
         {showCredits ? (
-          <Box key="credits-head" flexDirection="row" justifyContent="space-between">
-            <Text color="subtle">Copilot credits used</Text>
-            <Box flexDirection="row" gap={2}>
+          <Box key="credits-head" width="100%" flexDirection="row" columnGap={2}>
+            <Box flexGrow={1} minWidth={0}>
               <Text>
+                <Text color="subtle">Copilot credits used  </Text>
                 <Text bold color={overBudget ? 'error' : undefined}>
                   {fmt(stats.spent)}
                 </Text>
                 <Text color="subtle"> of {fmt(team.creditBudget)}</Text>
               </Text>
-              {link('credits-hide', chevron(true), toggle(() => (showCredits = false)))}
+            </Box>
+            <Box flexShrink={0} flexDirection="row" gap={2}>
+              {link('credits-more', `🪙 +${CREDIT_STEP}`, () => change(t => ({ ...t, creditBudget: t.creditBudget + CREDIT_STEP })))}
+              {link('budget-reset', '🔄 Reset', () => change(t => ({ ...t, creditBudget: PERIOD_BUDGET ?? t.creditBudget, budgetSince: now, cleanedCredits: 0 })))}
+              {arrow('credits-hide', true, toggle(() => (showCredits = false)))}
             </Box>
           </Box>
         ) : (
-          <Box key="credits-collapsed" flexDirection="row" alignItems="center" columnGap={2}>
-            {meter('budget-meter-collapsed', budgetShare, overBudget ? 'error' : budgetShare > 0.85 ? 'warning' : 'success')}
-            <Box flexShrink={0}>{link('credits-show', chevron(false), toggle(() => (showCredits = true)))}</Box>
+          <Box key="credits-collapsed" width="100%" flexDirection="row" alignItems="center" columnGap={2}>
+            {meter('budget-meter-collapsed', budgetShare, overBudget ? 'error' : budgetShare > WARN_AT ? 'warning' : 'success')}
+            <Box flexShrink={0}>{arrow('credits-show', false, toggle(() => (showCredits = true)))}</Box>
           </Box>
         )}
-        {showCredits && meter('budget-meter', budgetShare, overBudget ? 'error' : budgetShare > 0.85 ? 'warning' : 'success')}
+        {showCredits && meter('budget-meter', budgetShare, overBudget ? 'error' : budgetShare > WARN_AT ? 'warning' : 'success')}
         {showCredits && (
         <Text size="footnote" color="subtle">
           {[
@@ -645,22 +663,6 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
             .filter(Boolean)
             .join('  ·  ')}
         </Text>
-        )}
-        {showCredits && (
-        <Box flexDirection="row" gap={1} flexWrap="wrap">
-          <Button key="seat-less" variant="secondary" onPress={() => change(t => ({ ...t, seats: Math.max(1, t.seats - 1) }))}>
-            🪑 −1
-          </Button>
-          <Button key="seat-more" variant="secondary" onPress={() => change(t => ({ ...t, seats: t.seats + 1 }))}>
-            🪑 +1
-          </Button>
-          <Button key="credits-more" variant="secondary" onPress={() => change(t => ({ ...t, creditBudget: t.creditBudget + CREDIT_STEP }))}>
-            {`🪙 +${CREDIT_STEP}`}
-          </Button>
-          <Button key="budget-reset" variant="secondary" onPress={() => change(t => ({ ...t, budgetSince: now, cleanedCredits: 0 }))}>
-            🔄 Reset
-          </Button>
-        </Box>
         )}
       </Box>
 
@@ -720,7 +722,14 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
       </Box>
 
       <Box key="org" flexDirection="column">
-        {heading('org-heading', 'Members', link('toggle-chart', chevron(showChart), toggle(() => (showChart = !showChart))))}
+        {heading(
+          'org-heading',
+          'Members',
+          <Box flexDirection="row" columnGap={2}>
+            {link('hire', '➕ Hire', () => tell('Propose a hire.'))}
+            {arrow('toggle-chart', showChart, toggle(() => (showChart = !showChart)))}
+          </Box>,
+        )}
         {showChart && (
           <Box key="org-grid" flexDirection="row" flexWrap="wrap" columnGap={2}>
           {chart.map((line, i) =>
@@ -755,13 +764,8 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
                 <Text weight="semibold">{line.group}</Text>
               </Box>
             ) : (
-              <Box key={`chart-${i}`} width={share(memberCols)} flexDirection="row" justifyContent="space-between">
+              <Box key={`chart-${i}`} width={share(memberCols)}>
                 <Text color="subtle">🪑 Open seat</Text>
-                {link(`hire-${i}`, '➕ Hire', () =>
-                  tell(
-                    'Open seat: propose a hire.',
-                  ),
-                )}
               </Box>
             ),
           )}
@@ -773,9 +777,12 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
         {heading(
           'jobs-heading',
           'Jobs',
-          hiddenCount > 0
-            ? link('toggle-hidden', `${chevron(showHidden)} ${hiddenCount} hidden`, toggle(() => (showHidden = !showHidden)))
-            : undefined,
+          hiddenCount > 0 ? (
+            <Box flexDirection="row" columnGap={2}>
+              <Text color="subtle">{`${hiddenCount} hidden`}</Text>
+              {arrow('toggle-hidden', showHidden, toggle(() => (showHidden = !showHidden)))}
+            </Box>
+          ) : undefined,
         )}
         {shownJobs.length === 0 && <Text color="subtle">No work yet.</Text>}
         <Box key="job-grid" flexDirection="row" flexWrap="wrap" columnGap={2} rowGap={1}>
@@ -796,8 +803,13 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
                 </Text>
                 {job.title && <Text>{`  ${job.title}`}</Text>}
               </Text>,
-              <Text color="subtle">{`${fmt(job.credits)} credits`}</Text>,
+              <Box flexDirection="row" columnGap={2}>
+                <Text color="subtle">{`${fmt(job.credits)} credits`}</Text>
+                {arrow(`${job.id}-fold`, !collapsedJobs.has(job.id), toggle(() => (collapsedJobs.delete(job.id) || collapsedJobs.add(job.id))))}
+              </Box>,
             )}
+            {!collapsedJobs.has(job.id) && (
+            <Box key={`${job.id}-body`} flexDirection="column">
             {job.total > 0 && meter(`${job.id}-meter`, job.done / job.total, job.done === job.total ? 'success' : 'suggestion')}
             <Text size="footnote" color="subtle">
               {[job.total > 0 ? `${job.done} of ${job.total} tasks done` : '', `${job.rounds.length} agent run${job.rounds.length === 1 ? '' : 's'}`, job.hidden ? 'hidden' : '']
@@ -888,6 +900,8 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
               {link(`hide-${job.id}`, job.hidden ? '👀 Show' : '🙈 Hide', () => setHidden(job.id, !job.hidden))}
               {job.hidden && link(`clean-${job.id}`, '📦 Archive', () => void cleanUp(job))}
             </Box>
+            </Box>
+            )}
           </Box>
         ))}
         </Box>

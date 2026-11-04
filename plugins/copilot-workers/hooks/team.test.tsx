@@ -77,11 +77,16 @@ test('the pane shows the team, its budget and a job from the runs folder', { opt
     expect(await ui.find({ type: 'Text', text: /121 credits/ })).toBeDefined()
     // A run that exits non-zero is Failed at once, with Copilot's last line as the reason.
     expect(await ui.find({ type: 'Text', text: /Failed: zsh: command not found: copilot/ })).toBeDefined()
+    // A folded job card keeps only its title row.
+    await ui.press({ key: 'T-1-fold' })
+    expect(await ui.find({ type: 'Text', text: /Demo job/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /2 of 3 tasks done/ })).toBeUndefined()
+    await ui.press({ key: 'T-1-fold' })
     await ui.unmount()
   }
 })
 
-test('an idle member can be removed after a second press', { options: { ownerName: 'Ana', runsDir: RUNS } }, async ($, on) => {
+test('an idle member can be removed after a second press', { options: { ownerName: 'Ana', runsDir: RUNS, creditStep: '250', creditBudget: '2000' } }, async ($, on) => {
   const written: Record<string, string> = {}
   const sentToLead: string[] = []
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -114,6 +119,18 @@ test('an idle member can be removed after a second press', { options: { ownerNam
   const roster = JSON.parse(written[`${RUNS}/team.json`] ?? '{}').roster.map((entry: { member: string }) => entry.member)
   expect(roster).toEqual(['senior-dev', 'senior-dev-2'])
   expect(sentToLead).toEqual(['[Copilot Team · Ana] Removed Reviewer (reviewer) from the team.'])
+
+  await ui.press({ key: 'hire' })
+  expect(sentToLead.at(-1)).toBe('[Copilot Team · Ana] Propose a hire.')
+
+  // The 🪙 button adds the configured step, not a fixed one.
+  await ui.press({ key: 'credits-more' })
+  expect(JSON.parse(written[`${RUNS}/team.json`] ?? '{}').creditBudget).toBe(1250)
+
+  // Reset starts a new period at the configured budget.
+  await ui.press({ key: 'budget-reset' })
+  const reset = JSON.parse(written[`${RUNS}/team.json`] ?? '{}')
+  expect([reset.creditBudget, reset.budgetSince, reset.cleanedCredits]).toEqual([2000, NOW, 0])
   await ui.unmount()
 })
 

@@ -1,6 +1,6 @@
 {
   "name": "copilot-workers",
-  "version": "0.6.2",
+  "version": "0.7.1",
   "description": "A Copilot Team pane for Claude Code: watch the GitHub Copilot CLI agents Claude leads, their jobs, rounds and credit budget, and steer them from one place",
   "author": {
     "name": "Moshiur"
@@ -19,6 +19,24 @@
       "title": "Runs folder",
       "description": "Where the Copilot run logs, team.json and lead.json live; empty means ~/.claude/copilot-runs",
       "default": ""
+    },
+    "creditBudget": {
+      "type": "string",
+      "title": "Credit budget",
+      "description": "The credit budget each period starts with; 🔄 Reset sets it back to this. Empty keeps the current budget",
+      "default": ""
+    },
+    "creditStep": {
+      "type": "string",
+      "title": "Credit step",
+      "description": "How many credits the 🪙 button adds to the budget",
+      "default": "500"
+    },
+    "warnAtPercent": {
+      "type": "string",
+      "title": "Budget warning at (%)",
+      "description": "How much of the credit budget is spent before the meter turns to a warning",
+      "default": "85"
     }
   },
   "license": "MIT",

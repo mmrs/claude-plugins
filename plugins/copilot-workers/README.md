@@ -9,9 +9,9 @@ A Copilot Team pane for Claude Code. Claude acts as the lead of a small team of 
 What you get in the pane:
 
 - **Header:** who you are to the lead, how many agents are working against your seat limit, and how many decisions are waiting on you.
-- **Credits:** spend against your budget with a meter, roughly how many more agent runs the rest buys, what a run costs on average, and buttons for seats, budget and a new budget period.
+- **Credits:** spend against your budget with a meter, roughly how many more agent runs the rest buys, what a run costs on average, and buttons for more budget and a new budget period.
 - **Needs your decision:** requests from the lead (a hire, more seats or credits) and questions it's waiting on, with Approve/Decline or Go ahead/Not yet.
-- **Members:** everyone on the roster with their model and whether they're working, plus open seats you can ask the lead to fill. An idle member can be removed (✕ Remove, then ✓ Remove to confirm); their past runs stay on their jobs.
+- **Members:** everyone on the roster with their model and whether they're working, plus open seats. ➕ Hire next to the heading asks the lead to propose a new member. An idle member can be removed (✕ Remove, then ✓ Remove to confirm); their past runs stay on their jobs.
 - **Jobs:** one card per ticket or task, with task progress counted from the job's checklist (any markdown file with `- [ ]` / `- [x]` items, such as an OpenSpec `tasks.md`; jobs without one simply show no bar), and per member the current step and command, the lead's verdict on its last run, and its runs, credits and time on the job. **▸ Steps** opens what the lead asked and the agent's last steps; **📝 Brief**, **📜 Transcript** and **✅ Tasks** open the files, and 💬 Status, ⏹ Stop, 🧾 Verdict, 🔍 Why? and 🔁 Restart ask the lead about a member's run. Each finished run carries the lead's verdict (accepted or sent back) or, before review, the agent's own summary.
 - **Message the lead:** a box that sends your message straight into the Claude session.
 
@@ -37,7 +37,7 @@ Or from a shell:
 claude plugin install copilot-workers --marketplace mmrs/claude-plugins
 ```
 
-Answer `y` to add the marketplace and pick the user scope. The install then asks for the plugin's options: your name (`ownerName`), which the pane shows as who the lead reports to, and `runsDir` if your runs don't live in `~/.claude/copilot-runs`. Open the pane with `/copilot-workers`.
+Answer `y` to add the marketplace and pick the user scope. The install then asks for the plugin's options: your name (`ownerName`), which the pane shows as who the lead reports to, `runsDir` if your runs don't live in `~/.claude/copilot-runs`, `creditBudget`, the credit budget each period starts with and 🔄 Reset goes back to (empty keeps the current one), `creditStep`, how many credits the 🪙 button adds to the budget (500 unless you change it), and `warnAtPercent`, how much of the budget is spent before the meter turns to a warning (85 unless you change it). Open the pane with `/copilot-workers`.
 
 In the desktop app, where `/plugin` doesn't run: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `mmrs/claude-plugins`, then **Add plugin**.
 
