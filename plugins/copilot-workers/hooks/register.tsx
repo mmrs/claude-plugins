@@ -18,14 +18,16 @@ let PERIOD_BUDGET: number | undefined
 const from = () => `[Copilot Team · ${OWNER}]`
 
 let sent = 0
-// Whether the pane lists hidden jobs too; a pane-only view setting, so a reload may reset it.
+// What's folded in the pane, kept in the plugin's store so a restart opens it the same way.
 let showHidden = false
 let showChart = true
 let showCredits = true
-// Member cards opened with Details, by job and member; a view setting, reset by a reload.
+// Member cards opened with Details, by job and member.
 const expanded = new Set<string>()
-// Job cards folded down to their title row; a reload unfolds them.
+// Job cards folded down to their title row.
 const collapsedJobs = new Set<string>()
+const FOLDS = 'folds'
+type Folds = { showHidden?: boolean; showChart?: boolean; showCredits?: boolean; expanded?: string[]; collapsedJobs?: string[] }
 // The member whose Remove is waiting for a second press; a reload forgets it.
 let removing: string | undefined
 const DETAIL_STEPS = 10
@@ -434,6 +436,12 @@ export const register: Register = (on, options) => {
     LOG_DIR = String(options.runsDir ?? '').trim().replace(/^~(?=\/|$)/, home) || `${home}/.claude/copilot-runs`
     TEAM_FILE = `${LOG_DIR}/team.json`
     LEAD_FILE = `${LOG_DIR}/lead.json`
+    const folds = ((await $.store.get(FOLDS).catch(() => undefined)) ?? {}) as Folds
+    showHidden = folds.showHidden ?? showHidden
+    showChart = folds.showChart ?? showChart
+    showCredits = folds.showCredits ?? showCredits
+    folds.expanded?.forEach(id => expanded.add(id))
+    folds.collapsedJobs?.forEach(id => collapsedJobs.add(id))
     await $.command.register({ name: 'copilot-workers', description: 'Show the Copilot Team pane: the Copilot workers Claude leads' })
     void $.ui.open({ id: PANE, title: TITLE })
     let shown = ''
@@ -550,6 +558,8 @@ const drawTeam = async ($: EngineInterface, e: RenderInput<'Pane' | 'CommandOutp
   }
   const toggle = (set: () => void) => () => {
     set()
+    const folds: Folds = { showHidden, showChart, showCredits, expanded: [...expanded], collapsedJobs: [...collapsedJobs] }
+    void $.store.set(FOLDS, folds).catch(() => undefined)
     redraw()
   }
 

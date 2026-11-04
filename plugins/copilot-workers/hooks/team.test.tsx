@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 const RUNS = '/runs'
 const NOW = Date.UTC(2026, 10, 3, 12, 0, 0)
@@ -178,5 +178,27 @@ test('runs copied within the same moment keep their run order', { options: { own
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect(await ui.find({ type: 'Text', text: /Lead accepted: fixed/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a job folded before a restart starts folded', { options: { ownerName: 'Ana', runsDir: RUNS } }, async ($, on) => {
+  mock.store(on, { folds: { collapsedJobs: ['T-1'] } })
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('command.register', () => ({ value: { command: 'copilot-workers' } }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('clock.every', () => ({ value: undefined }))
+  on('clock.now', () => ({ value: NOW }))
+  on('process.run', () => ({ value: { exitCode: 0, stdout: '/home/ana\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('fs.list', () => ({
+    value: Object.keys(FILES).map(path => ({ name: path.slice(RUNS.length + 1), kind: 'file' as const, isLink: false, size: 1, mtimeMs: NOW - 60_000 })),
+  }))
+  on('fs.read', (_, e) => ({ value: FILES[e.path] ?? '' }))
+
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: /Demo job/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /2 of 3 tasks done/ })).toBeUndefined()
+  await ui.press({ key: 'T-1-fold' })
+  expect(await ui.find({ type: 'Text', text: /2 of 3 tasks done/ })).toBeDefined()
   await ui.unmount()
 })

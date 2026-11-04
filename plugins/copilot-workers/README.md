@@ -71,7 +71,7 @@ The pane only reads files, so it also works with any other lead that writes them
 
 ## Development
 
-From the repository root, run `claude plugin test plugins/copilot-workers`. The tests mount the pane on the terminal and desktop surfaces against a fake runs folder: the header, numbered titles, checklist counts, verdicts and credits, a failed run, removing a member, and the order of runs copied in one go.
+From the repository root, run `claude plugin test plugins/copilot-workers`. The tests mount the pane on the terminal and desktop surfaces against a fake runs folder: the header, numbered titles, checklist counts, verdicts and credits, a failed run, removing a member, the order of runs copied in one go, and folds kept across a restart.
 
 ## Licence
 

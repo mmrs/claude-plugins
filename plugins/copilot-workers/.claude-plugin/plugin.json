@@ -1,6 +1,6 @@
 {
   "name": "copilot-workers",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "A Copilot Team pane for Claude Code: watch the GitHub Copilot CLI agents Claude leads, their jobs, rounds and credit budget, and steer them from one place",
   "author": {
     "name": "Moshiur"
