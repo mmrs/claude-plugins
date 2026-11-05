@@ -2,9 +2,9 @@
 
 A Copilot Team pane for Claude Code. Claude acts as the lead of a small team of [GitHub Copilot CLI](https://github.com/github/copilot-cli) agents: it writes each agent a brief, runs it in the background, reviews what comes back and reports to you. The pane shows that team as it works, so you can see who's busy, what each agent is doing right now, what it cost, and step in without reading log files.
 
-![The Copilot Team pane showing the demo team: credits, a question waiting on you, members, and three jobs with a failed, an unreviewed and an accepted run](docs/copilot-team.png)
+![The Copilot Team pane on the demo team: a Frontend Developer works through WEB-7, ticks two of its tasks, finishes at 54 credits, and the lead accepts the run](docs/copilot-team.gif)
 
-*The pane on the bundled [demo](demo/) runs.*
+*The pane on the bundled [demo](demo/) runs, with one more WEB-7 run played into it.*
 
 What you get in the pane:
 
