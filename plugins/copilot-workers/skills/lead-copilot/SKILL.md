@@ -48,7 +48,7 @@ Never pick work for the team yourself. A ticket sitting in a backlog isn't appro
    echo "# exit=$?" >> "$RUNS/$NAME.log"
    ```
 
-   `role` is `implement`, `fix`, `review` or `test`. Deny every git command that changes state and all of `gh`: agents never commit, push or open PRs. A reviewer also gets `--deny-tool write`. Without the `# exit=` line the pane can't tell a run that failed to start from a slow one.
+   `role` is `implement`, `fix`, `review` or `test`. Deny every git command that changes state and all of `gh`: agents never commit, push or open PRs. A reviewer also gets `--deny-tool write`, and when `copilot skill list` shows `ponytail-review`, its brief asks it to run that skill as well, so the review also flags code and tests the change doesn't need. Without the `# exit=` line the pane can't tell a run that failed to start from a slow one.
 4. **Register the job** in `lead.json` if it's new: `jobs["TICKET-1"] = { "title": "…", "tasks": "<absolute path to a markdown checklist>" }`. `tasks` is optional; any file with `- [ ]` / `- [x]` items works, such as an OpenSpec `tasks.md`.
 
 For a follow-up round on the same agent, resume its session (`copilot --resume=<session id>`) into a new log with the next run number, so the pane counts each round's credits on their own.
