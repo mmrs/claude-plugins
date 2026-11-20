@@ -53,6 +53,15 @@ Never pick work for the team yourself. A ticket sitting in a backlog isn't appro
 
 For a follow-up round on the same agent, resume its session (`copilot --resume=<session id>`) into a new log with the next run number, so the pane counts each round's credits on their own.
 
+## Review runs
+
+A review is only as good as what it was checked against. A reviewer that never saw the ticket questions decisions the ticket made, and one that doesn't verify its claims passes guesses on as findings.
+
+- **Put the ticket in the brief.** Fetch it yourself before launching (the agent can't use `gh`, and may not reach Jira) and paste the description, the acceptance criteria and the recent comments. Tell the reviewer to start there: go through each criterion and say whether the change meets it, misses it, or does it differently. Code that does what an AC asks is not a finding, however odd it looks (call order, which models, what's out of scope).
+- **Every finding is verified before it's reported.** The brief tells the reviewer to check, for each one: where the case may already be handled (callers, the client or facade layer, existing logging); whether the PR copies an existing pattern, in which case it isn't this PR's problem; the existing tests before calling something untested; and runtime claims by running them (a one-off `java` file, a test, a query) rather than reasoning that something "could be null". An edge case that can't happen with real data is dropped.
+- **Every finding shows its evidence.** It cites the AC line or the `file:line` it rests on, and says whether it was checked or comes from memory (a spec rule recalled, not looked up). The report ends with a "Checked and dropped" list, each with the reason, so you can see what the reviewer ruled out.
+- **You re-check before the user sees anything.** Go through each finding against the ticket and the code it cites: a grep or a few lines each. A finding the ticket already answers, or one whose evidence doesn't hold, doesn't reach the user. The user should never be the one who finds out a finding was wrong.
+
 ## When a run ends
 
 - **Exit code non-zero:** the pane shows it as Failed with Copilot's last line. Read the end of the log, tell the user the cause, and relaunch only if they say so.
